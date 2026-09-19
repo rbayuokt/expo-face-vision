@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "expo-face-vision-example",
+    "slug": "expo-face-vision-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "expo.modules.facevision.example"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "expo.modules.facevision.example"
+    },
+    "plugins": [
+      [
+        "@rbayuokt/expo-face-vision",
+        {
+          "cameraPermission": "The camera is used to demo live face detection."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pick a photo to run face detection on."
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.facevision'
+version = '0.1.0'
+
+def cameraxVersion = '1.6.2'
+
+android {
+  namespace "expo.modules.facevision"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // Bundled model: works offline and without Play services, at ~6MB per ABI.
+  implementation 'com.google.mlkit:face-detection:16.1.7'
+  implementation "androidx.camera:camera-core:${cameraxVersion}"
+  implementation "androidx.camera:camera-camera2:${cameraxVersion}"
+  implementation "androidx.camera:camera-lifecycle:${cameraxVersion}"
+  implementation "androidx.camera:camera-view:${cameraxVersion}"
+  // BitmapFactory does not apply EXIF orientation on its own.
+  implementation 'androidx.exifinterface:exifinterface:1.4.2'
+}

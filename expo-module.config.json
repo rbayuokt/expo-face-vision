@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["ExpoFaceVisionModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.facevision.ExpoFaceVisionModule"]
+  }
+}
