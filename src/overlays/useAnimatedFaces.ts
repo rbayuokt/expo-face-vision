@@ -3,7 +3,37 @@ import { useFrameCallback, useSharedValue, type SharedValue } from 'react-native
 import { useFaceCameraController } from '../camera/context';
 import type { FaceCameraController } from '../camera/controller';
 import { useFaceFrames } from '../hooks';
-import type { Point } from '../types';
+import type { ContourType, LandmarkType, Point } from '../types';
+
+// Points are eased by index between frames, so every frame must list them in the same order.
+// Native maps don't guarantee one (Swift dictionaries reorder freely), hence fixed key lists.
+const LANDMARK_ORDER: LandmarkType[] = [
+  'leftEye',
+  'rightEye',
+  'noseBase',
+  'leftMouth',
+  'rightMouth',
+  'bottomMouth',
+  'leftCheek',
+  'rightCheek',
+  'leftEar',
+  'rightEar',
+];
+const CONTOUR_ORDER: ContourType[] = [
+  'face',
+  'leftEye',
+  'rightEye',
+  'leftEyebrow',
+  'rightEyebrow',
+  'noseBridge',
+  'noseBottom',
+  'outerLips',
+  'innerLips',
+  'upperLip',
+  'lowerLip',
+  'leftCheek',
+  'rightCheek',
+];
 
 /** A face in preview coordinates (dp), interpolated on the UI thread. Arrays are flat x,y pairs. */
 export interface AnimatedFace {
@@ -72,8 +102,14 @@ export function useAnimatedFaces(options: AnimatedFacesOptions = {}): SharedValu
         y: f.previewBounds.y,
         width: f.previewBounds.width,
         height: f.previewBounds.height,
-        landmarks: withLandmarks && f.landmarks ? flat(Object.values(f.landmarks)) : [],
-        contours: withContours && f.contours ? Object.values(f.contours).map(flat) : [],
+        landmarks:
+          withLandmarks && f.landmarks
+            ? flat(LANDMARK_ORDER.flatMap((k) => (f.landmarks![k] ? [f.landmarks![k]!] : [])))
+            : [],
+        contours:
+          withContours && f.contours
+            ? CONTOUR_ORDER.flatMap((k) => (f.contours![k] ? [flat(f.contours![k]!)] : []))
+            : [],
         yaw: f.headPose?.yaw ?? 0,
         pitch: f.headPose?.pitch ?? 0,
         roll: f.headPose?.roll ?? 0,

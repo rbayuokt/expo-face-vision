@@ -1,13 +1,20 @@
 # expo-face-vision
 
-Face detection for Expo apps that goes past boxes on a preview: it tells the user what to
-fix ("move closer", "look straight"), takes the photo once they get it right, runs Face ID
-style scans and KYC-style liveness checks, and tracks head gestures and blinks. Detection
-runs on the phone with Google ML Kit on Android and Apple Vision on iOS. Camera frames stay
-in native code; JS only receives a small description of each face.
+Face detection for React Native and Expo that runs on the device. It also comes with
+ready-made flows for auto selfie capture, Face ID style scanning, KYC liveness checks, head
+gestures and blink detection.
 
-It doesn't recognize people. Nothing here compares two faces or produces embeddings, so if
-you need "is this the same person as the ID card", pair it with a matcher on your server.
+All the camera and detection work happens in native code. Android uses CameraX and ML Kit,
+iOS uses AVFoundation and Vision. JS never sees the camera frames, only a small object per
+frame with the faces in it, and the overlays animate on the UI thread. On an iPhone 11 Pro
+it analyzes 30 frames a second at around 27 ms per frame. Nothing gets uploaded.
+
+It doesn't do face recognition, so it can't tell you whether two photos show the same
+person. For that you'd pair it with a matcher on your server.
+
+Instead of stitching together a camera library, an ML plugin, coordinate math and your
+own capture logic, you install one package and get the whole flow, from the camera to the
+finished photo or the passed check.
 
 ```bash
 npx expo install @rbayuokt/expo-face-vision
@@ -23,7 +30,19 @@ npx expo prebuild
 ```
 
 The config plugin sets `NSCameraUsageDescription` on iOS and makes sure `CAMERA` is
-declared on Android. It needs a development build; Expo Go doesn't ship the native module.
+declared on Android. It needs a development build, because Expo Go doesn't ship the native
+module.
+
+In a bare React Native app, add Expo modules first, then install the package and pods:
+
+```bash
+npx install-expo-modules@latest
+npm install @rbayuokt/expo-face-vision
+npx pod-install
+```
+
+Without the config plugin, add `NSCameraUsageDescription` to `Info.plist` yourself. The
+Android `CAMERA` permission comes with the library's manifest.
 
 Everything beyond the core is an optional peer. Install what you use:
 
@@ -105,10 +124,10 @@ const styles = StyleSheet.create({
 ```
 
 Things you didn't have to write there:
-- mapping face coordinates onto a mirrored, cropped preview;
-- deciding when "centered" and "still" are true;
-- keeping the hint from flickering on a threshold;
-- guaranteeing the photo is taken exactly once.
+- mapping face coordinates onto a mirrored, cropped preview
+- deciding when "centered" and "still" are true
+- keeping the hint from flickering on a threshold
+- making sure the photo is taken exactly once
 
 The user also gets a haptic tap on capture if `expo-haptics` is installed. The photo is an
 upright, un-mirrored JPEG in the cache directory.
@@ -164,16 +183,57 @@ top to bottom and copy what you need:
 Everything under `example/components/` is plain React Native UI with no library imports,
 so the library calls are easy to spot in each screen.
 
-To run it on a device or simulator, from the repo root:
+### Running the example
+
+The camera demos need a real camera, so a physical phone works best. Photo analysis and
+the JS part of the benchmark also run in a simulator or emulator.
+
+**What you need**
+
+- Node.js and npm.
+- Android: Android Studio with the Android SDK, and a phone with USB debugging turned on
+  (Settings → About phone → tap Build number 7 times, then Developer options → USB debugging).
+- iOS: a Mac with Xcode and CocoaPods, and an iPhone with Developer Mode turned on
+  (Settings → Privacy & Security → Developer Mode). Set your own Apple team in
+  `example/app.json` under `expo.ios.appleTeamId`, since installing on an iPhone needs a
+  signing team.
+
+**First run**
 
 ```bash
-npm install
-npm run example:android   # or: npm run example:ios
+git clone https://github.com/rbayuokt/expo-face-vision.git
+cd expo-face-vision
+npm install              # library dependencies
+
+cd example
+npm install              # example app dependencies
+npm run android:debug    # or: npm run ios:debug
 ```
 
-This installs the example's dependencies, builds the library, and launches a development
-build. The first native build takes a few minutes. After that, `npx expo start` inside
-`example/` is enough for JS changes.
+Pick your phone when it asks for a device. The first build generates the native
+`example/android` and `example/ios` projects and takes a few minutes. On iOS, the first
+launch may need **Settings → General → VPN & Device Management → Trust** for your
+developer account.
+
+**Day to day**
+
+- JS changes, in the library's `src/` or the example: run `npx expo start` in `example/`,
+  then press `r` to reload. After editing `src/`, run `npm run prepare` at the repo root
+  first (or restart with `npx expo start --clear`) so the example picks up the new build.
+- Native changes (Kotlin, Swift, or a new native package): run `npm run android:debug` or
+  `npm run ios:debug` again.
+
+**Scripts in `example/`**
+
+| Command | Does |
+| --- | --- |
+| `npm run android:debug` / `npm run ios:debug` | Builds the library, installs a development build on the device you pick, starts Metro |
+| `npm run android:release` / `npm run ios:release` | Release build with the JS bundled in, no Metro needed. Use it for benchmarks |
+| `npm run start` | Starts Metro for an already installed development build |
+| `npm run prebuild:clean` | Regenerates `example/android` and `example/ios`, e.g. after changing `app.json` |
+
+From the repo root, `npm run example:android` and `npm run example:ios` do the example's
+`npm install` and a development build in one step.
 
 ## Why use it
 
@@ -210,45 +270,56 @@ validation, guidance, auto capture and liveness. Its 92 Jest tests run in about 
 
 ## Benchmarks
 
-Measured on an **OPPO CPH2217** (MediaTek MT6779, Android 13). Each number is a median
-taken after a warm-up; a range means two separate runs. The numbers come from
-the Benchmark screen in the example app (Home → Developer → Benchmark), so you can run the
-same measurements on your own phones. It also prints the results as a Markdown table to
-the device log. iOS hasn't been benchmarked yet.
+Every number here comes from the Benchmark screen in the example app (Home → Developer →
+Benchmark), so you can run the same measurements on your own phones. It also prints the
+results as a Markdown table to the console. Each number is a median taken after a warm-up,
+and a range covers separate runs.
 
-**Still photo.** `detectFaces` on a 2089×2093 JPEG with one face, landmarks and
-classification on, median of 5 calls. The time is measured natively and includes decoding
-and orientation, so the JS build type doesn't affect it.
-
-| Mode | Time | Faces |
+| | iPhone | Android |
 | --- | --- | --- |
-| `fast` | 255 ms | 1 |
-| `balanced` | 498 ms | 1 |
-| `accurate` | 817 ms | 1 |
+| Device | iPhone 11 Pro (A13) | OPPO CPH2217 (MediaTek MT6779) |
+| OS | iOS 26.2 | Android 13 |
+| Detector | Apple Vision | Google ML Kit |
+| Build | release | release |
 
-**Live front camera** (release build). Landmarks and classification on, a face in every
-analyzed frame, two 8 s runs per mode indoors:
+Both phones ran release builds. If you benchmark a debug build, expect the JS rows to be
+slower (up to 2.8 times on the OPPO). Detection is timed in native code and doesn't change.
 
-| Mode | Detection per frame | Analyzed |
+**Live front camera**, with a face in 94 to 100% of analyzed frames:
+
+| Mode | iPhone: detection | iPhone: analyzed | Android: detection | Android: analyzed |
+| --- | --- | --- | --- | --- |
+| `fast` (640×480) | 27 ms | 24 fps | 36 to 48 ms | 10 to 11 fps |
+| `balanced` (1280×720) | 27 ms | 30 fps | 39 to 52 ms | 10 to 11 fps |
+| `accurate` (1920×1080) | 29 ms | 30 fps | 63 to 64 ms | 10 to 12 fps |
+
+Both phones are limited by their camera rather than the detector. The iPhone hits the
+camera's 30 fps cap. The OPPO's front camera delivered only 10 to 13 frames a second in
+indoor light, even though detection alone would allow 20 fps or more in `fast`. Native
+counters confirmed every delivered frame was analyzed.
+
+**Still photo**: `detectFaces` on the same 900×1600 selfie on both phones, one face,
+including decoding and orientation:
+
+| Mode | iPhone | Android |
 | --- | --- | --- |
-| `fast` (640×480) | 36 to 48 ms | 10 to 11 fps |
-| `balanced` (1280×720) | 39 to 52 ms | 11 fps |
-| `accurate` (1920×1080) | 63 to 64 ms | 11 to 12 fps |
+| `fast` | 25 ms | 183 ms |
+| `balanced` | 38 ms | 288 ms |
+| `accurate` | 33 ms | 472 ms |
 
-Detection alone would allow 20 fps or more in `fast`. The analyzed rate here was limited by
-the front camera itself, which delivered 10 to 13 frames a second in indoor light. The
-native counters confirmed every delivered frame was analyzed.
+On iOS the modes only change the input size, and a 1600 px photo is barely over the
+`balanced` limit, so its three numbers are close.
 
-**JS work per analyzed frame** (Hermes, release build):
+**JS work per analyzed frame:**
 
-| Work | Time |
-| --- | --- |
-| Track and smooth 1 face | 0.08 ms |
-| Same, plus ~130 contour points | 0.78 ms |
-| Track and smooth 5 faces | 0.23 ms |
-| Map 130 points to preview coordinates | 0.09 ms |
-| Validation, guidance and stability | 0.28 ms |
-| Head tracking and gesture recognition | 0.23 ms |
+| Work | iPhone | Android |
+| --- | --- | --- |
+| Track and smooth 1 face | 0.02 ms | 0.05 ms |
+| Same, plus ~130 contour points | 0.27 ms | 0.69 ms |
+| Track and smooth 5 faces | 0.07 ms | 0.21 ms |
+| Map 130 points to preview coordinates | 0.03 ms | 0.08 ms |
+| Validation, guidance and stability | 0.09 ms | 0.25 ms |
+| Head tracking and gesture recognition | 0.07 ms | 0.20 ms |
 
 At 15 fps a frame has a budget of 66 ms, so even the heaviest row takes about 1% of it.
 
@@ -275,7 +346,7 @@ const quality = analyzeFaceQuality(face, { image, stats });
 ```
 
 Sources can be `file://` or `content://` URIs, absolute paths, `require()` assets or
-`{ uri }`. Remote `http(s)` URLs are rejected; download them first. Images are decoded
+`{ uri }`. Remote `http(s)` URLs are rejected, so download them first. Images are decoded
 upright from their EXIF orientation, and every coordinate comes back in the original
 image's pixels even when a faster mode detected on a downscaled copy.
 
@@ -312,9 +383,9 @@ can actually pass. Brightness and sharpness requirements switch on `frameStats`.
 
 | Prop | Does |
 | --- | --- |
-| `facing` | `front` or `back`; switching resets tracking |
+| `facing` | `front` or `back`. Switching resets tracking |
 | `active` | `false` stops the session and analysis |
-| `inferenceFps` | Max analyzed frames per second, extra frames dropped natively; `<= 0` pauses detection. On Android it also asks auto exposure not to drop below that rate, which means shorter exposures in dim light |
+| `inferenceFps` | Max analyzed frames per second. Extra frames are dropped natively and `<= 0` pauses detection. On Android it also asks auto exposure not to drop below that rate, which means shorter exposures in dim light |
 | `detection` | Same options as `detectFaces` |
 | `tracking` | `true`, `false` or `{ smoothing, filter, timeout, minIou, smoothPoints }` |
 | `frameStats` | Per-face brightness, contrast and Laplacian variance from the luma plane |
@@ -327,7 +398,7 @@ can actually pass. Brightness and sharpness requirements switch on `frameStats`.
 | --- | --- |
 | `useFaceDetection(source, options)` | The still-image result arrives |
 | `useFaceTracking({ onFaceDetected, onFaceUpdated, onFaceLost })` | The set of tracked ids changes |
-| `useHeadTracking(options)` | Movement direction or stability changes; `onMovement` and `getLatest()` for continuous values |
+| `useHeadTracking(options)` | Movement direction or stability changes. Use `onMovement` and `getLatest()` for continuous values |
 | `useHeadGesture({ gestures, onGesture })` | A gesture is recognized |
 | `useBlinkDetection({ onBlink })` | A blink is counted |
 | `useHeadCoverage({ segments, onComplete })` | A new segment of the head-movement circle fills |
@@ -335,7 +406,7 @@ can actually pass. Brightness and sharpness requirements switch on `frameStats`.
 | `useFaceQuality(options)` | At most every `throttleMs` (250 by default) |
 | `useFaceValidation(requirements)` | `valid`, the issue codes or the shown guidance status change |
 | `useFaceAutoCapture(options)` | The state machine changes state |
-| `useFaceFrames(listener)` | Never; raw per-frame callback |
+| `useFaceFrames(listener)` | Never, it's a raw per-frame callback |
 
 Frames never go through React state by default. Each hook subscribes to the controller
 and only sets state when something it reports has changed.
@@ -354,7 +425,7 @@ ML Kit and Vision don't expose the same things, and the library doesn't pretend 
 | Smile / eye-open probability | Yes | No |
 | Blink source | Eye-open probability | Eye contour aspect ratio against the person's own baseline |
 | Face confidence | Not reported, never synthesized | `observation.confidence` |
-| Fast vs accurate | FAST / ACCURATE detector plus input size | Input size only; Vision has no mode switch |
+| Fast vs accurate | FAST / ACCURATE detector plus input size | Input size only, Vision has no mode switch |
 
 Performance modes: `fast` analyzes around 640×480 on the camera (640 px long side for
 images), `balanced` around 1280×720 (1280 px), `accurate` around 1920×1080 (full
@@ -380,8 +451,8 @@ Angles are degrees and subject-centric, so they read the same on both cameras:
 | `roll` | The head tilts toward the subject's right shoulder | `+headEulerAngleZ` | `+roll` |
 
 The raw platform values are kept in `face.native.rawAngles` (radians on iOS). The ML Kit
-signs come from its API reference; on iOS roll and pitch come from the Vision headers and
-yaw is inferred from them, so check that one on a device before relying on the sign.
+signs come from its API reference. On iOS, roll and pitch come from the Vision headers.
+Apple doesn't document yaw's direction, so its sign was set from testing on an iPhone 11 Pro.
 
 Guidance follows the same idea: `MOVE_*` are screen directions as the user sees the
 preview, `LOOK_*` are the subject's own left and right.
@@ -421,7 +492,7 @@ time constant. Higher looks smoother and trails further behind.
 `HeadGestureRecognizer` works on the filtered pose history, not single frames:
 
 - `turn-left/right`, `look-up/down`, `tilt-left/right`: past the angle (25° / 15° / 20°) from an adaptive neutral pose for 150 ms, re-armed only after coming back toward neutral
-- `nod` and `shake`: at least 2 and 3 reversals of 8° and 10° within 1.2 s, rejected when the other axis moves too much; one event per bout
+- `nod` and `shake`: at least 2 and 3 reversals of 8° and 10° within 1.2 s, rejected when the other axis moves too much, one event per bout
 - `hold`: pose within 3° for a second
 - 500 ms cooldown after any gesture
 
@@ -521,7 +592,7 @@ next one:
 - It fails with `TIMEOUT` (8 s per step), `FACE_LOST`, `MULTIPLE_FACES` or `FACE_CHANGED`
   (a different tracking id mid-session).
 
-Prompts are codes with English defaults in `DEFAULT_LIVENESS_PROMPTS`; pass `prompts` to
+Prompts are codes with English defaults in `DEFAULT_LIVENESS_PROMPTS`. Pass `prompts` to
 translate them. Each prompt is spoken once it has held for 300 ms, so a flickering state
 doesn't stutter the voice.
 
@@ -553,8 +624,8 @@ platform can't provide produces `SIGNAL_UNAVAILABLE` rather than a guess. `custo
 validators can add their own codes.
 
 `getGuidance(validation)` maps issues to a single status code by priority (`NO_FACE`,
-`MOVE_CLOSER`, `LOOK_LEFT`, `HOLD_STILL`, `READY`, ...). The library returns codes only;
-wording and localization belong to the app. `GuidanceFilter` holds a new status for
+`MOVE_CLOSER`, `LOOK_LEFT`, `HOLD_STILL`, `READY`, ...). The library returns codes only,
+and the wording and localization belong to the app. `GuidanceFilter` holds a new status for
 300 ms before showing it, so a face sitting on a threshold doesn't make the prompt
 flicker.
 
@@ -581,7 +652,7 @@ after one photo. `capture()` is a manual shutter that goes through the same mach
 
 Photos are upright JPEGs in the cache directory and are never mirrored, even from the
 front camera. The `face` in the capture result is in the analyzed frame's pixels, not the
-photo's; run `detectFaces` on the photo if you need to crop it.
+photo's. Run `detectFaces` on the photo if you need to crop it.
 
 ## Layout
 
@@ -601,7 +672,7 @@ example/       demo app: KYC, selfie, Face ID style scan, gestures, inspector,
 ```
 
 `core/` imports neither React nor native code, so everything in it works on its own and
-is what the tests cover. The main entry never imports Skia or Reanimated; only
+is what the tests cover. The main entry never imports Skia or Reanimated, only
 `overlays/` does.
 
 ## Scripts
@@ -620,10 +691,9 @@ is what the tests cover. The main entry never imports Skia or Reanimated; only
 ## Notes
 
 - iOS 15.1+. Android uses bundled ML Kit face detection 16.1.7 and CameraX 1.6.2.
-- Web isn't supported; the module throws `UNSUPPORTED_PLATFORM`.
-- The example app runs on a physical Android phone (the OPPO above). iOS has been
-  compiled for the simulator but not yet run on a device. There, the yaw sign and the
-  front-camera orientation are the first things to check.
+- Web isn't supported, and the module throws `UNSUPPORTED_PLATFORM`.
+- The example app has been run on a physical Android phone (the OPPO above) and an
+  iPhone 11 Pro on iOS 26.
 - Liveness shows that a live person followed randomized instructions. It is not certified
   presentation-attack detection.
 
