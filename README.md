@@ -4,6 +4,14 @@
 
 # expo-face-vision
 
+<p align="center">
+  <img src="docs/demo.gif" alt="expo-face-vision demo on Android and iOS" width="640" />
+</p>
+
+<p align="center">
+  <sub>That's my younger brother in the demo. Thanks for being a patient model 😄</sub>
+</p>
+
 Face detection for React Native and Expo that runs on the device. It also comes with
 ready-made flows for auto selfie capture, Face ID style scanning, KYC liveness checks, head
 gestures and blink detection.

@@ -61,3 +61,6 @@ yarn-error.log
 
 .claude/
 CLAUDE.md
+
+# Source video for docs/demo.gif (151 MB, over GitHub's 100 MB file limit)
+docs/demo-final.mp4
