@@ -8,7 +8,8 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.facevision.example"
+      "bundleIdentifier": "expo.modules.facevision.example",
+      "appleTeamId": "U2VRZF66Z8"
     },
     "android": {
       "adaptiveIcon": {

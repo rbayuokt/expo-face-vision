@@ -1,7 +1,7 @@
 {
   "name": "@rbayuokt/expo-face-vision",
   "version": "0.1.0",
-  "description": "Native-first face detection, tracking, head pose, guidance and auto capture for Expo. Google ML Kit on Android, Apple Vision on iOS, Skia overlays.",
+  "description": "Native face detection, tracking, head pose, guidance, auto capture and liveness for React Native and Expo. Google ML Kit on Android, Apple Vision on iOS, Skia overlays.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {

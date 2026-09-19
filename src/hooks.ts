@@ -158,26 +158,37 @@ export function useFaceTracking(options: FaceTrackingCallbacks = {}): { tracking
   return { trackingIds: ids };
 }
 
+/** ms a followed face may go undetected before per-face state (neutral pose, blink baseline) resets. */
+const FACE_GONE_MS = 1000;
+
 /**
- * Follows one face across frames and runs `fn` with it, resetting `reset` whenever the followed
- * face changes identity or disappears.
+ * Follows one face across frames and runs `fn` with it, calling `reset` when a different face
+ * is followed or the face has been gone for FACE_GONE_MS. Single missed detections don't reset:
+ * Vision often drops a frame when the head is turned, and resetting then would take the
+ * turned pose as the new neutral.
  */
 function useSelectedFace(
   options: CameraHookOptions,
   fn: (face: DetectedFace, frame: FaceFrame) => void,
   reset: () => void
 ) {
-  const followed = useRef<number | undefined | null>(null);
+  const followed = useRef<{ id: number; lastSeen: number } | null>(null);
   const latestFn = useLatest(fn);
   const latestReset = useLatest(reset);
   useFaceFrames((frame) => {
     const face = selectFace(frame, options.select);
-    const id = face ? (face.trackingId ?? -1) : null;
-    if (id !== followed.current) {
-      followed.current = id;
-      latestReset.current();
+    const current = followed.current;
+    if (!face) {
+      if (current && frame.timestamp - current.lastSeen > FACE_GONE_MS) {
+        followed.current = null;
+        latestReset.current();
+      }
+      return;
     }
-    if (face) latestFn.current(face, frame);
+    const id = face.trackingId ?? -1;
+    if (!current || current.id !== id) latestReset.current();
+    followed.current = { id, lastSeen: frame.timestamp };
+    latestFn.current(face, frame);
   }, options.camera);
 }
 

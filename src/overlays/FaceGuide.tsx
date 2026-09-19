@@ -13,6 +13,13 @@ import {
 import type { GuideShape } from '../camera/controller';
 import type { GuidanceStatus } from '../core/guidance';
 
+/**
+ * The canvas reaches this far past each edge. A canvas sized to a fractional view width can
+ * round its pixels down on iOS, leaving a hairline of live camera along the right and bottom
+ * edges; the camera view clips the overhang, so the mask always covers every edge pixel.
+ */
+const BLEED = 2;
+
 export interface FaceGuideProps {
   /** Same shape you pass as `requirements.guide`, so the drawn oval is the one validated. */
   shape?: GuideShape;
@@ -60,15 +67,15 @@ export function FaceGuide(props: FaceGuideProps) {
   const w = (shape.width ?? 0.72) * size.width;
   const h = (shape.height ?? 0.48) * size.height;
   const oval = Skia.XYWHRect(
-    (size.width - w) / 2,
-    size.height * (shape.centerY ?? 0.45) - h / 2,
+    BLEED + (size.width - w) / 2,
+    BLEED + size.height * (shape.centerY ?? 0.45) - h / 2,
     w,
     h
   );
   // Index 0 starts the oval at 12 o'clock so progress fills clockwise from the top.
   const ovalPath = Skia.Path.Make().addOval(oval, false, 0);
   const dimPath = Skia.Path.Make();
-  dimPath.addRect(Skia.XYWHRect(0, 0, size.width, size.height));
+  dimPath.addRect(Skia.XYWHRect(0, 0, size.width + BLEED * 2, size.height + BLEED * 2));
   dimPath.addOval(oval);
   dimPath.setFillType(FillType.EvenOdd);
 
@@ -85,7 +92,11 @@ export function FaceGuide(props: FaceGuideProps) {
         setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
       }>
       {size.width > 0 ? (
-        <Canvas style={StyleSheet.absoluteFill}>
+        <Canvas
+          style={[
+            styles.bleed,
+            { width: size.width + BLEED * 2, height: size.height + BLEED * 2 },
+          ]}>
           <Path path={dimPath} color={dimColor} />
           <Path
             path={ovalPath}
@@ -108,3 +119,7 @@ export function FaceGuide(props: FaceGuideProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  bleed: { position: 'absolute', left: -BLEED, top: -BLEED },
+});

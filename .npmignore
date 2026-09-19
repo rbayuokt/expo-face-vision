@@ -30,3 +30,6 @@ __tests__
 *.log
 .env
 .env.*
+
+# Local Claude Code project instructions
+/CLAUDE.md

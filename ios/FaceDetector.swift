@@ -16,12 +16,11 @@ internal struct DetectedFace {
 }
 
 /**
- Vision reports angles in radians with the right-hand rule on its image axes
- (x right, y up, z towards the viewer). The headers (VNObservation.h) say:
- roll is counterclockwise-positive, pitch is positive when nodding down, yaw is
- counterclockwise-positive around y. With the camera looking at the subject that means
- +roll = crown towards the subject's right shoulder, +pitch = looking down,
- +yaw = nose towards image right = the subject turning to their own left.
+ Vision reports angles in radians. The headers (VNObservation.h) say roll is
+ counterclockwise-positive and pitch is positive when nodding down, so +roll = crown
+ towards the subject's right shoulder and +pitch = looking down. Yaw's direction isn't
+ documented; on an iPhone 11 Pro (iOS 26) raw yaw is negative when the subject turns to
+ their own right, so it's flipped like pitch.
  */
 private let yawSign = -1.0
 private let pitchSign = -1.0
