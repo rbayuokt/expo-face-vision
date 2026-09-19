@@ -33,3 +33,7 @@ __tests__
 
 # Local Claude Code project instructions
 /CLAUDE.md
+
+# Dev-only config, not needed by consumers
+/eslint.config.cjs
+/tsconfig.json

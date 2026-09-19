@@ -10,6 +10,8 @@
 
 <p align="center">
   <sub>That's my younger brother in the demo. Thanks for being a patient model 😄</sub>
+  <br />
+  <sub>The GIF has no sound. To hear the spoken KYC prompts, watch the <a href="https://drive.google.com/file/d/1itAPaHDOsTm53RGf-bKMJ0T9tsWeXvKb/view?usp=sharing">full video with audio</a>.</sub>
 </p>
 
 Face detection for React Native and Expo that runs on the device. It also comes with
