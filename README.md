@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/expo-face-vision.png" alt="expo-face-vision" width="100%" />
+</p>
+
 # expo-face-vision
 
 Face detection for React Native and Expo that runs on the device. It also comes with
