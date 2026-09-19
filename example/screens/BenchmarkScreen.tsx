@@ -26,9 +26,13 @@ const median = (values: number[]) => {
 };
 
 function deviceName(): string {
+  if (Platform.OS === 'ios') {
+    // React Native doesn't expose the iPhone model; name it yourself when sharing results.
+    const { interfaceIdiom } = Platform.constants as { interfaceIdiom?: string };
+    return `${interfaceIdiom === 'pad' ? 'iPad' : 'iPhone'}, iOS ${Platform.Version}`;
+  }
   const c = Platform.constants as { Brand?: string; Model?: string };
-  const model = c.Brand && c.Model ? `${c.Brand} ${c.Model}` : Platform.OS;
-  return `${model}, ${Platform.OS} ${Platform.Version}`;
+  return `${c.Brand ?? ''} ${c.Model ?? ''}, Android API ${Platform.Version}`.trim();
 }
 
 /** Logs results as a Markdown table, so they can be pulled from `adb logcat` or Xcode. */

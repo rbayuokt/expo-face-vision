@@ -28,7 +28,11 @@
     "prebuild": "expo prebuild",
     "prebuild:clean": "expo prebuild --clean",
     "android": "npm --prefix .. run prepare && expo run:android",
-    "ios": "npm --prefix .. run prepare && expo run:ios"
+    "ios": "npm --prefix .. run prepare && expo run:ios",
+    "android:debug": "npm --prefix .. run prepare && expo run:android --device",
+    "android:release": "npm --prefix .. run prepare && expo run:android --device --variant release --no-bundler",
+    "ios:debug": "npm --prefix .. run prepare && expo run:ios --device",
+    "ios:release": "npm --prefix .. run prepare && expo run:ios --device --configuration Release --no-bundler"
   },
   "private": true,
   "expo": {
