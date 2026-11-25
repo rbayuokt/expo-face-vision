@@ -17,11 +17,11 @@ internal enum FaceVisionErrorCode: String {
  */
 internal final class FaceVisionException: Exception, @unchecked Sendable {
   private let errorCode: String
-  private let message: String
+  private let detail: String
 
   init(_ code: FaceVisionErrorCode, _ message: String, cause: Error? = nil) {
     self.errorCode = code.rawValue
-    self.message = message
+    self.detail = message
     super.init()
     self.cause = cause
   }
@@ -31,6 +31,6 @@ internal final class FaceVisionException: Exception, @unchecked Sendable {
   }
 
   override var reason: String {
-    message
+    detail
   }
 }
